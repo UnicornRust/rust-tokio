@@ -4,12 +4,15 @@ pub async fn tokio_fn() {
     base().await;
     multi_task().await;
     timeout_task().await;
+    select().await;
 }
 
 // 用法 
 // --------------------
 // tokio::spawn 
-// tokio::join 
+// tokio::join!() 
+// tokio::select!()
+// tokio::time::{ sleep, timeout, Duration }
 //
 async fn base() {
     //
@@ -28,7 +31,7 @@ async fn base() {
         println!("Task two has completed");
     });
 
-    // 让两个线程同时执行
+    // 并发执行多个 Future
     let _ = tokio::join!(task_one, task_two);
 }
 
@@ -48,6 +51,23 @@ async fn multi_task() {
     }
 }
 
+// 
+// tokio::select!()
+//  
+// 并发推进多个任务同时执行，谁先完成，就返回, 其他任务执行不在关注
+async fn select() {
+
+    tokio::select! {
+        result = process_task(1) => {
+            println!("select {result} completed");
+        },
+        _ = sleep(Duration::from_secs(2)) => {
+            println!("timeout with select");
+        }
+    }
+}
+
+
 async fn timeout_task()  {
     let result = timeout(
         Duration::from_secs(1), 
@@ -59,8 +79,9 @@ async fn timeout_task()  {
     }
 }
 
-async fn process_task(id: u32) {
+async fn process_task(id: u32) -> u32 {
     println!("Task { } is stated", id);
     sleep(Duration::from_secs(2)).await;
     println!("Task {} has completed", id);
+    id
 }

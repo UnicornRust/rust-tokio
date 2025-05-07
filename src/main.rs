@@ -16,10 +16,13 @@ async fn main() {
     // pins::run().await;
 
     // craw data
-    craw::fetch::run().await;
+    // craw::fetch::run().await;
 
-    // tot::base::tokio_fn().await;
+    // tokio api 
+    tot::run().await;
 
 
-    fsapi::fileop::fs_sync().await;
+
+    // tokio fs mod
+    // fsapi::fileop::fs_sync().await;
 }
