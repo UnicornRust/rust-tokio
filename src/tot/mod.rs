@@ -1,14 +1,15 @@
-use base::tokio_fn;
-use channel::{channel, mpsc_join, mpsc_join_order};
+use tk_spawn::tk_spawn_run;
+use tk_join::tk_join_run;
 
 // tokia 的 编排
-pub mod base;
-pub mod channel;
+pub mod tk_spawn;
+pub mod tk_join;
+pub mod tk_rice;
 
 
 pub async fn run() {
-    // tokio_fn().await;
-    // mpsc_join().await;
-    // channel_mpsc().await;
-    mpsc_join_order().await;
+
+    tk_spawn_run().await;
+    tk_join_run().await;
+
 }

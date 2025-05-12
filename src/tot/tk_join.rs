@@ -1,7 +1,18 @@
+use std::{future::Future, pin::{pin, Pin}};
+
 use tokio::{time:: {sleep, Duration}, sync::mpsc};
 
 
-pub async fn channel() {
+pub async fn tk_join_run() {
+
+    channel().await;
+    channel_mpsc().await;
+    mpsc_join_macro().await;
+    mpsc_join_vec().await;
+}
+
+
+async fn channel() {
 
     let (tx, mut rx) =  mpsc::channel(8);
 
@@ -26,7 +37,8 @@ pub async fn channel() {
 
 }
 
-pub async fn mpsc_join() {
+
+async fn channel_mpsc() {
 
     let (tx, mut rx) = mpsc::channel(8);
 
@@ -60,8 +72,11 @@ pub async fn mpsc_join() {
 
 }
 
+//  join!()
+//  > 如果需要处理 Future 返回不同 Output 情况 (即 Future 类型不同)
+//  > 使用 join!() 处理固定数量 Future, 产生一个这些类型的元组.
 
-pub async fn mpsc_join_order() {
+async fn mpsc_join_macro() {
     let (tx, mut rx) = mpsc::channel(8);
 
     let tx1 = tx.clone();
@@ -97,3 +112,47 @@ pub async fn mpsc_join_order() {
     tokio::join!(tx_fut, rx1_fut, tx1_fut);
 }
 
+
+// 
+//  处理 Future 集合 join_all()
+//
+//  > 明确如果需要处理可变的集合，则需要明确 Future 都返回相同的 Output 类型, 使用 join_all()
+//
+async fn mpsc_join_vec() {
+
+    let (tx, mut rx) = mpsc::channel(8);
+
+    // 
+    let tx_fut = pin!(async move {
+        let vals = vec![
+            String::from("Hi"),
+            String::from("from"),
+        ];
+
+        for val in vals {
+            if let Err(_) = tx.send(val).await {
+                println!("mpsc::sender dropped()");
+                return;
+            }
+            sleep(Duration::from_millis(500)).await;
+        }
+    });
+
+    // pin 住 Future, 得到的就是一个封装类型，因此可以放入 vec 中
+    //
+    let rx_fut = pin!(async {
+        while let Some(val) = rx.recv().await {
+            println!("mpsc::receiver: {val}");
+        }
+    });
+
+    // 
+    // vec  需要准确的知道元素的类型, 这是放入 vec 的基础
+    // 因此我们需要确实的表示出 Pin 的引用类型
+    //
+    // > 持有一个 Pin 住的 动态 Future trait 对象可变引用
+    //
+    let list: Vec<Pin<&mut dyn Future<Output=()>>> = vec![tx_fut, rx_fut];
+
+    trpl::join_all(list).await;
+}
